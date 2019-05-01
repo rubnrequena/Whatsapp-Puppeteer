@@ -205,5 +205,5 @@ async function currentPage(params) {
   return page;
 }
 module.exports = {
-  init,findFreqUser: findUser,send,isSending,currentPage,getQR: getScreen
+  init,findFreqUser: findUser,send,isSending,currentPage,getScreen
 }
