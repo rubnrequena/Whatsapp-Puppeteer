@@ -15,9 +15,8 @@ router.get('/qr',async (req,res) => {
 router.get("/:num/:msg",async (req,res) => {
   let sent = await ws.send(req.params.num,req.params.msg).catch(e=>{
     console.error(e);
-    res.send("Error al enviar mensaje");
   });
-  res.json(sent);
+  res.send("Mensaje enviado...")
 });
 router.get('/usuarios',(req,res) => {
   res.json({

@@ -15,27 +15,24 @@ var userPicNum = /t=s&u=(\d+)/;
 var mensajes={};
 
 async function init() {
-  let startUp;
   if (!page) {
     page = await titere.newPage();      
     initPage();
     await page.goto('https://web.whatsapp.com/',{waitUntil:"networkidle2"});
     console.log("WS: Cargando...");    
-    while (await page.$('#startup')) page.waitFor(500);
+    while (!await page.$('._1FKgS .app')) {
+      page.waitFor(1000);
+      if (await page.$('.landing-main')) {
+        log("Esperando validacion QR http://127.0.0.1/ws/qr");
+        await page.screenshot({path:"public/images/lastQR.jpg"});
+        page.waitFor(5000);
+      }
+    }
     console.log("WS: Ready...");
-    if (await page.$('._1FKgS .app')) startUp = "app"
-    if (await page.$(selector.activarApp)) startUp = "login";
-    console.log("WS: Init",startUp);
   }  
-  if (startUp=="login") {
-    console.log("SE NECESITA VALIDAR QR: http://127.0.0.1/ws/qr");
-  } else if (startUp=="app") {
-    console.log("WS: Iniciado exitosamente!");
-    setInterval(verificarMensajes,config.MSG_CHECK_DELAY);
-  }
+  setInterval(verificarMensajes,config.MSG_CHECK_DELAY);
 }
 async function initPage() {
-  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3641.0 Safari/537.36');
   page.exposeFunction('msgCheck',mensajesEnviados);
   page.exposeFunction('newMsg',mensajesNuevos);
 }
@@ -126,10 +123,6 @@ async function send(user,msg) {
   if (isSending) {
     console.log(`Queue: ${user} ${msg}`);
     queueMsg.push({user,msg});
-    return {
-      status:"pending",
-      time:new Date().toISOString()
-    }
   }
   isSending=true;
   console.log(clwarn(`Enviando: ${user} ${msg}`));
@@ -137,10 +130,6 @@ async function send(user,msg) {
   if (await findUser(user)) {
     await typeMsg(user,msg);
     nextPending();
-    return {
-      status:"sent",
-      time:new Date().toISOString()
-    };
   } else await sendToNumber(user,msg);
 }
 async function sendToNumber(num,msg) {
@@ -148,7 +137,10 @@ async function sendToNumber(num,msg) {
   console.log("WS: Enviando msg a travez de api.whatsapp.com");
   await apiPage.goto(`https://api.whatsapp.com/send?phone=${num}&text=${msg}&source=&data=`,{timeout:config.PAGE_LOAD_TIMEOUT});  
   await apiPage.click("#action-button");
-  await apiPage.waitForSelector('._35EW6',{timeout:config.PAGE_LOAD_TIMEOUT});
+  getScreen("apiws",apiPage);
+  await apiPage.waitForSelector('._35EW6',{timeout:config.PAGE_LOAD_TIMEOUT}).catch(e=>{
+    getScreen("apiws2",apiPage);
+  });
   await apiPage.waitFor(500);
   await apiPage.click("._35EW6");
 
@@ -180,15 +172,15 @@ async function verifySent() {
 }
 
 function nextPending() {
-  console.log(`${queueMsg.length} mensajes en cola`);
   if (queueMsg.length>0) {
     let msg = queueMsg.shift();
     send(msg.user,msg.msg);
   }
 }
 
-async function getQR() {
-  await page.screenshot({path:"public/images/lastQR.jpg"});
+async function getScreen(name="lastQR",_page) {
+  _page = _page || page;
+  await _page.screenshot({path:`public/images/${name}.jpg`});
 }
 
 const selector = {
@@ -207,11 +199,11 @@ const selector = {
   statusCheck:'status-check',
   statusCheckAck:'status-dblcheck-ack',
   statusCheckDbl:'status-dblcheck',
-  activarApp:'._2U_Zc'
+  activarApp:'.landing-main'
 }
 async function currentPage(params) {
   return page;
 }
 module.exports = {
-  init,findFreqUser: findUser,send,isSending,currentPage,getQR
+  init,findFreqUser: findUser,send,isSending,currentPage,getQR: getScreen
 }
