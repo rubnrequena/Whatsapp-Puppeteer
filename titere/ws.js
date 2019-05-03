@@ -11,8 +11,6 @@ const clwarn = chalk.yellow;
 var page;
 var queueMsg = [];
 var isSending;
-var isOnline=false;
-var userPicNum = /t=s&u=(\d+)/;
 var mensajes={};
 
 async function init() {
