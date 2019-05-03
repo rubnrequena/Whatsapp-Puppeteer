@@ -147,12 +147,8 @@ async function sentMsg(num) {
   isSending=false;
 }
 async function send(user,msg) {  
-  if (isSending) {
-    console.log(`Queue: ${user} ${msg}`);
-    queueMsg.push({user,msg});
-  }
-  isSending=true;  
-  //if (!page) await init();
+  if (isSending) return queueMsg.push({user,msg});
+  isSending=true;
   if (await findUser(user)) {
     await typeMsg(user,msg);
     //nextPending();
