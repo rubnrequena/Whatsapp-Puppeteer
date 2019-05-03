@@ -41,13 +41,13 @@ function mensajesEnviados (num,msg,status) {
   delete mensajes[num];
   switch (status) {
     case selector.statusCheck: 
-      console.log(clwarn(`Enviado: ${num} > ${msg}`)); 
+      console.log(clwarn(`Enviado: ${num}`)); 
       break;
     case selector.statusCheckDbl: 
-      console.log(clwarn(`Recibido: ${num} > ${msg}`)); 
+      console.log(clwarn(`Recibido: ${num}`)); 
       break;
     case selector.statusCheckAck: 
-      console.log(clwarn(`Leido: ${num} > ${msg}`));
+      console.log(clwarn(`Leido: ${num}`));
       break;
   }
 }
