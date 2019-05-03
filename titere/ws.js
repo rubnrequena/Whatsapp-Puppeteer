@@ -108,16 +108,23 @@ function messageRcv (num,msg) {
 }
 async function typeMsg(num,msg) {
   await page.waitForSelector(selector.chatInput);
-  await page.click(selector.chatInput);  
-  let parts = msg.split('\n');
-  for (var i = 0; i < parts.length; i++) {
-    await page.keyboard.down('Shift');
-    await page.keyboard.press('Enter');
-    await page.keyboard.up('Shift');
-    await page.keyboard.type(parts[i],{delay:5});
-  }
-  await page.keyboard.type('\n');
   console.log(clwarn(`Enviando: ${num} ${msg}`));
+  
+  await page.evaluate(msg=>{
+    let textarea = document.createElement("textarea");
+    textarea.value = msg;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textarea);
+  },msg);
+  
+  await page.click(selector.chatInput); 
+  await page.keyboard.down("ControlLeft");
+  await page.keyboard.press("KeyV");
+  await page.keyboard.up("ControlLeft");
+  await page.keyboard.press("Enter");
+
   sentMsg(num);
 }
 async function sentMsg(num) { 

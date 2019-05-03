@@ -20,5 +20,12 @@ router.get("/enviar/:num",async (req,res) => {
     res.json({ok:"mensaje enviado"})
   } else res.json({error:"Campo mensaje obligatorio"});  
 });
+router.get("/reg",(req,res) => {
+  let reg = /resultado (\w+) ([\w:]+)/gi;
+  let msg = "resultado lotto 9:am"
+  let m = reg.exec(msg);
+  console.log(m);
+  res.send("ok");
+})
 
 module.exports = router;
