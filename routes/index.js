@@ -12,11 +12,13 @@ router.get('/pantalla',async (req,res) => {
   await ws.getScreen();
   res.render('login');
 })
-router.get("enviar/:num/:msg",async (req,res) => {
-  let sent = await ws.send(req.params.num,req.params.msg).catch(e=>{
-    console.error(e);
-  });
-  res.send("Mensaje enviado...")
+router.get("/enviar/:num",async (req,res) => {
+  if (req.query.msg && req.query.msg!="") {
+    await ws.send(req.params.num,req.query.msg).catch(e=>{
+      console.error(e);
+    });
+    res.json({ok:"mensaje enviado"})
+  } else res.json({error:"Campo mensaje obligatorio"});  
 });
 
 module.exports = router;
