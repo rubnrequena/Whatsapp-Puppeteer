@@ -25,7 +25,6 @@ async function init() {
         ],
       ignoreDefaultArgs: ['--disable-extensions']
     });
-    browser.on("close",e => console.log("navegador cerrado por usuario"));
   }
   return browser;
 }

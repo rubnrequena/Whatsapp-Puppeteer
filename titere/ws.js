@@ -3,6 +3,7 @@ const chalk = require('chalk');
 const log = require('single-line-log').stdout;
 const formatPhone = require('../config/formatPhone');
 const config = require('../config/index');
+const axios = require('axios');
 
 const clerror = chalk.red;
 const clgreen = chalk.green;
@@ -91,18 +92,36 @@ function verificarMensajes() {
 }
 function messageRcv (num,msg) {  
   console.log(clgreen(`${num} dice: ${msg}`));
+  let m;
   if (msg.toLowerCase().indexOf("eco:")>-1) send(num,msg.toLowerCase().replace('eco:','dijiste:','gi'));
   if (msg.match(/hola/gi)) send(num,`Hello ${num}, como estas?`);
+  if (msg.match(/resultado (\w+) ([\w:]+)/gi)) {
+    m = msg.split(" ");
+    let h = escape(m[2]);
+    let url = `http://srq.com.ve/prm/?sorteo=${m[1]}&hora=${h}`;
+    console.log("fetching",url);
+    axios.get(url).then(res=>{
+      console.log("res",res);
+      send(num,JSON.stringify(res.data));
+    })
+  }
 }
 async function typeMsg(num,msg) {
-  console.log("preparando mensaje");
   await page.waitForSelector(selector.chatInput);
-  await page.click(selector.chatInput);
-  await page.keyboard.type(msg);
-  await page.keyboard.press('Enter');
+  await page.click(selector.chatInput);  
+  let parts = msg.split('\n');
+  for (var i = 0; i < parts.length; i++) {
+    await page.keyboard.down('Shift');
+    await page.keyboard.press('Enter');
+    await page.keyboard.up('Shift');
+    await page.keyboard.type(parts[i],{delay:5});
+  }
+  await page.keyboard.type('\n');
+  console.log(clwarn(`Enviando: ${num} ${msg}`));
   sentMsg(num);
 }
-async function sentMsg(num) {  
+async function sentMsg(num) { 
+  await page.waitForSelector('span[data-icon="status-time"]');
   page.evaluate(num => {
     let sending = document.querySelector('span[data-icon="status-time"]');      
     sending.setAttribute("num",`${num}`);
@@ -124,12 +143,11 @@ async function send(user,msg) {
     console.log(`Queue: ${user} ${msg}`);
     queueMsg.push({user,msg});
   }
-  isSending=true;
-  console.log(clwarn(`Enviando: ${user} ${msg}`));
+  isSending=true;  
   //if (!page) await init();
   if (await findUser(user)) {
     await typeMsg(user,msg);
-    nextPending();
+    //nextPending();
   } else await sendToNumber(user,msg);
 }
 async function sendToNumber(num,msg) {
@@ -150,14 +168,13 @@ async function sendToNumber(num,msg) {
 
   sentMsg(num);
 }
-async function findUser (num) {  
-  //await page.click(selector.newChat);
+async function findUser (num) {
   let search = await page.$(selector.searchInput);
   await search.click();
   await page.keyboard.type(num);  
-  let img = await page.$(selector.userNum(formatPhone(num)));
-  if (img) {
-    await img.click();
+  let user = await page.$(selector.userNum(formatPhone(num)));
+  if (user) {
+    await page.keyboard.press('Enter');
     return true;
   }
   return false;
