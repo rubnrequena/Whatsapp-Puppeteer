@@ -29,9 +29,8 @@ async function init() {
   return browser;
 }
 
-async function waitForNewPage(params) {
+async function waitForNewPage() {
   await browser.once('targetcreated', target => {
-    console.log("NUEVA PAGINA");
     return target.page();
   })
 }
