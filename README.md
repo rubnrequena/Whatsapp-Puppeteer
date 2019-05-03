@@ -13,7 +13,7 @@ para conseguir el codigo en pantalla ingrese a 127.0.0.1:3000/pantalla
 Enviar Mensaje:  
 127.0.0.1:3000/enviar/num?msg=mensaje  
 Pantallazo  
-127.0.0.1:3000/pantalla
+127.0.0.1:3000/pantalla  
 
 Ejemplo: 127.0.0.1:3000/enviar/56123456789?msg=Hola  
 
