@@ -96,14 +96,10 @@ function messageRcv (num,msg) {
   let m;
   if (msg.toLowerCase().indexOf("eco:")>-1) send(num,msg.toLowerCase().replace('eco:','dijiste:','gi'));
   if (msg.match(/hola/gi)) send(num,`Hello ${num}, como estas?`);
-  if (msg.match(/resultado (\w+) ([\w:]+)/gi)) {
-    m = msg.split(" ");
-    let h = escape(m[2]);
-    let url = `http://srq.com.ve/prm/?sorteo=${m[1]}&hora=${h}`;
-    console.log("fetching",url);
+  if (m = (/resultado (\w+) ([\w:]+)/gi).exec(msg)) {
+    let url = `http://srq.com.ve/prm/?dev&sorteo=${m[1]}&hora=${escape(m[2])}`;
     axios.get(url).then(res=>{
-      console.log("res",res);
-      send(num,JSON.stringify(res.data));
+      send(num,JSON.stringify(res.data,null,2));
     })
   }
 }
