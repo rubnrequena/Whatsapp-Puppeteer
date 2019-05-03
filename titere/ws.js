@@ -38,6 +38,7 @@ async function initPage() {
   page.exposeFunction('newMsg',mensajesNuevos);
 }
 function mensajesEnviados (num,msg,status) {
+  delete mensajes[num];
   switch (status) {
     case selector.statusCheck: 
       console.log(clwarn(`Enviado: ${num} > ${msg}`)); 
