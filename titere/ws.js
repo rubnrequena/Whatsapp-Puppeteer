@@ -151,7 +151,7 @@ async function send(user,msg) {
   isSending=true;
   if (await findUser(user)) {
     await typeMsg(user,msg);
-    //nextPending();
+    nextPending();
   } else await sendToNumber(user,msg);
 }
 async function sendToNumber(num,msg) {
@@ -159,10 +159,7 @@ async function sendToNumber(num,msg) {
   console.log("WS: Enviando msg a travez de api.whatsapp.com");
   await apiPage.goto(`https://api.whatsapp.com/send?phone=${num}&text=${msg}&source=&data=`,{timeout:config.PAGE_LOAD_TIMEOUT});  
   await apiPage.click("#action-button");
-  getScreen("apiws",apiPage);
-  await apiPage.waitForSelector('._35EW6',{timeout:config.PAGE_LOAD_TIMEOUT}).catch(e=>{
-    getScreen("apiws2",apiPage);
-  });
+  await apiPage.waitForSelector('._35EW6',{timeout:config.PAGE_LOAD_TIMEOUT});
   await apiPage.waitFor(500);
   await apiPage.click("._35EW6");
 
