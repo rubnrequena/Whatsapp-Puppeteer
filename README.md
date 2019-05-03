@@ -2,9 +2,9 @@
 Titere de NodeJS para Whatsapp
 
 # Instalaccion
-clonar repositorio
-npm i
-npm start
+clonar repositorio\
+npm i\
+npm start\
 
 # Como Usar
 El whatsapp web se ejecuta automaticamente al iniciar el server
