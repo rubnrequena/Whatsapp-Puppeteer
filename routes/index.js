@@ -4,6 +4,8 @@ const formatPhone = require('../config/formatPhone');
 const ws = require('../titere/ws');
 const wsconfig =require('../config/WSConfig')(ws);
 
+const libphone = require('libphonenumber-js');
+
 router.get("/", (req,res) => {
   res.send("ws ready");
 })
@@ -19,5 +21,9 @@ router.get("/enviar/:num",async (req,res) => {
     res.json({ok:"mensaje enviado"})
   } else res.json({error:"Campo mensaje obligatorio"});  
 });
+router.get("/format/:num",(req,res) => {
+  let num = libphone.parsePhoneNumberFromString(`${req.params.num}`);
+  res.send(num.formatInternational());
+})
 
 module.exports = router;

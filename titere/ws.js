@@ -159,7 +159,7 @@ async function findUser (num) {
   let search = await page.$(selector.searchInput);
   await search.click();
   await page.keyboard.type(num);  
-  let user = await page.$(selector.userNum(formatPhone(num)));
+  let user = await page.$('#pane-side > div > div > div');
   if (user) {
     await page.keyboard.press('Enter');
     return true;
