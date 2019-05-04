@@ -3,7 +3,7 @@ const chalk = require('chalk');
 const log = require('single-line-log').stdout;
 const formatPhone = require('../config/formatPhone');
 const config = require('../config/index');
-const axios = require('axios');
+const services = require('../titere/BotHandler');
 
 const clerror = chalk.red;
 const clgreen = chalk.green;
@@ -91,15 +91,7 @@ function verificarMensajes() {
 }
 function messageRcv (num,msg) {  
   console.log(clgreen(`${num} dice: ${msg}`));
-  let m;
-  if (msg.toLowerCase().indexOf("eco:")>-1) send(num,msg.toLowerCase().replace('eco:','dijiste:','gi'));
-  if (msg.match(/hola/gi)) send(num,`Hello ${num}, como estas?`);
-  if (m = (/resultado (\w+) ([\w:]+)/gi).exec(msg)) {
-    let url = `http://srq.com.ve/prm/?dev&sorteo=${m[1]}&hora=${escape(m[2])}`;
-    axios.get(url).then(res=>{
-      send(num,JSON.stringify(res.data,null,2));
-    })
-  }
+  services.dispatch(num,msg);
 }
 async function typeMsg(num,msg) {
   await page.waitForSelector(selector.chatInput);
@@ -217,5 +209,5 @@ async function currentPage(params) {
   return page;
 }
 module.exports = {
-  init,findFreqUser: findUser,send,isSending,currentPage,getScreen
+  init,findFreqUser: findUser,send,isSending,currentPage,getScreen,services
 }
