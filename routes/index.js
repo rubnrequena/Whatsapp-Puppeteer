@@ -2,8 +2,7 @@ var express = require('express');
 var router = express.Router();
 const formatPhone = require('../config/formatPhone');
 const ws = require('../titere/ws');
-
-ws.init();
+const wsconfig =require('../config/WSConfig')(ws);
 
 router.get("/", (req,res) => {
   res.send("ws ready");
@@ -20,12 +19,5 @@ router.get("/enviar/:num",async (req,res) => {
     res.json({ok:"mensaje enviado"})
   } else res.json({error:"Campo mensaje obligatorio"});  
 });
-router.get("/reg",(req,res) => {
-  let reg = /resultado (\w+) ([\w:]+)/gi;
-  let msg = "resultado lotto 9:am"
-  let m = reg.exec(msg);
-  console.log(m);
-  res.send("ok");
-})
 
 module.exports = router;

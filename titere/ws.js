@@ -73,7 +73,7 @@ function verificarMensajes() {
 
       let msgSpan = uDiv.querySelector('._2_LEW');
       if (!msgSpan) return; //usuario esta escribiendo
-      let msg = msgSpan.title;
+      let msg = msgSpan.innerText;
       let eNumero = uDiv.querySelector('._3TEwt > span:nth-child(1)');
       if (eNumero) {
         let nombre = eNumero.title;
