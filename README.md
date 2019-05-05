@@ -11,7 +11,8 @@ Si necesita validar el codigo QR el sistema esperara por la validacion,
 para conseguir el codigo en pantalla ingrese a 127.0.0.1:3000/pantalla  
  
 Enviar Mensaje:  
-127.0.0.1:3000/enviar/num?msg=mensaje  
+127.0.0.1:3000/enviar/num/?msg=mensaje  
+127.0.0.1:3000/difundir/?numeros=destino1,destino2,destino3?msg=mensaje  
 Pantallazo  
 127.0.0.1:3000/pantalla  
 
