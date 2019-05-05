@@ -168,14 +168,6 @@ async function findUser (num) {
   }
   return false;
 }
-async function verifySent() {
-  let enviando = await page.$('[data-icon="msg-time"]');
-  while (enviando) {
-    await page.waitFor(500);
-    enviando = await page.$('[data-icon="msg-time"]');
-  }
-  return true;
-}
 
 async function nextPending() {
   if (queueMsg.length>0) {
@@ -211,5 +203,5 @@ async function currentPage(params) {
   return page;
 }
 module.exports = {
-  init,findFreqUser: findUser,send,isSending,currentPage,getScreen,services
+  init,findUser,send,isSending,currentPage,getScreen,services
 }
