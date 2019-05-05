@@ -94,7 +94,7 @@ function messageRcv (num,msg) {
   services.dispatch(num,msg);
 }
 async function typeMsg(num,msg) {
-  await page.waitForSelector(selector.chatInput);
+  await page.waitForSelector(selector.chatInput);  
   console.log(clwarn(`Enviando: ${num} ${msg}`));
   
   await page.evaluate(msg=>{
@@ -112,7 +112,7 @@ async function typeMsg(num,msg) {
   await page.keyboard.up("ControlLeft");
   await page.keyboard.press("Enter");
 
-  sentMsg(num);
+  await sentMsg(num);
 }
 async function sentMsg(num) { 
   await page.waitForSelector('span[data-icon="status-time"]');
@@ -130,9 +130,10 @@ async function sentMsg(num) {
     console.log(clerror(e));
     isSending=false;
   });
+  console.log("mensaje enviado");
   isSending=false;
 }
-async function send(user,msg) {  
+async function send(user,msg) { 
   if (isSending) return queueMsg.push({user,msg});
   isSending=true;
   if (await findUser(user)) {
@@ -143,7 +144,7 @@ async function send(user,msg) {
 async function sendToNumber(num,msg) {
   let apiPage = await titere.newPage();
   console.log("WS: Enviando msg a travez de api.whatsapp.com");
-  await apiPage.goto(`https://api.whatsapp.com/send?phone=${num}&text=${msg}&source=&data=`,{timeout:config.PAGE_LOAD_TIMEOUT});  
+  await apiPage.goto(`https://api.whatsapp.com/send?phone=${num}&text=${encodeURI(msg)}&source=&data=`,{timeout:config.PAGE_LOAD_TIMEOUT});  
   await apiPage.click("#action-button");
   await apiPage.waitForSelector('._35EW6',{timeout:config.PAGE_LOAD_TIMEOUT});
   await apiPage.waitFor(500);
@@ -159,7 +160,8 @@ async function findUser (num) {
   let search = await page.$(selector.searchInput);
   await search.click();
   await page.keyboard.type(num);  
-  let user = await page.$('#pane-side > div > div > div');
+  let sel = selector.userNum(formatPhone(num));
+  let user = await page.$(sel);
   if (user) {
     await page.keyboard.press('Enter');
     return true;
@@ -175,10 +177,10 @@ async function verifySent() {
   return true;
 }
 
-function nextPending() {
+async function nextPending() {
   if (queueMsg.length>0) {
     let msg = queueMsg.shift();
-    send(msg.user,msg.msg);
+    await send(msg.user,msg.msg);
   }
 }
 
