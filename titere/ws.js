@@ -108,8 +108,11 @@ function msgCheck() {
         } else if (eNumero = uDiv.querySelector('img')) {        
           if (num = /t=s&u=(\d+)/.exec(eNumero.src)) num = num[1];
         } else num = nombre;
+
+        let asset;
+        asset = await page.$('.status-image')?"pic":false;
         console.log(`Mensaje encontrado de ${num} dice ${msg}`);
-        window.newMsg(num,msg,nMsg);
+        window.newMsg(num,msg,{nMsg,asset});
       }
     },300);
   }).catch(e=>console.log(clerror(e.name),e));
@@ -118,9 +121,13 @@ function messageRcv (num,msg) {
   console.log(clgreen(`${num} dice: ${msg}`));
   services.dispatch(num,msg);
 }
-async function typeMsg(num,msg) {
-  await page.waitForSelector(selector.chatInput);  
-  console.log(clwarn(`Enviando: ${num} ${msg}`));
+/**
+ * @param {String} msg Mensaje a enviar
+ * @param {String} input Elemento donde escribir
+ */
+async function typeMsg(msg,input) {
+  await page.waitForSelector(input);
+  console.log(clwarn(`Escribiendo: ${msg}`));
   
   await page.evaluate(msg=>{
     let textarea = document.createElement("textarea");
@@ -131,19 +138,19 @@ async function typeMsg(num,msg) {
     document.body.removeChild(textarea);
   },msg);
   
-  await page.click(selector.chatInput); 
+  await page.click(input);
   await page.keyboard.down("ControlLeft");
   await page.keyboard.press("KeyV");
   await page.keyboard.up("ControlLeft");
   await page.keyboard.press("Enter");
 
-  isSending=false;
 }
 async function send(user,msg) { 
   if (isSending) return queueMsg.push({user,msg});
   isSending=true;
   if (await findUser(user)) {
-    await typeMsg(user,msg);
+    await typeMsg(msg,selector.chatInput);
+    isSending=false;
     nextPending();
   } else await sendToNumber(user,msg);
 }
@@ -205,8 +212,9 @@ async function sendPicture(num,uri,msg='') {
     let file = path.relative(process.cwd(),uri);
     await upload.uploadFile(file);
     await page.waitForSelector('._3hV1n.yavlE');
+    await typeMsg(msg,selector.imgSendInput);
     //TODO: writte if msg
-    await page.keyboard.press("Enter");
+    //await page.keyboard.press("Enter");
   }
 }
 const selector = {
