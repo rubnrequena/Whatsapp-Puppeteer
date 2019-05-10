@@ -4,6 +4,8 @@ const log = require('single-line-log').stdout;
 const formatPhone = require('../config/formatPhone');
 const config = require('../config/index');
 const services = require('../titere/BotHandler');
+const path = require('path');
+const wget = require('node-wget-promise');
 
 const clerror = chalk.red;
 const clgreen = chalk.green;
@@ -30,11 +32,11 @@ async function init() {
     console.log("WS: Ready...");    
     initPage();
   }  
-  setInterval(verificarMensajes,config.MSG_CHECK_DELAY);
+  setInterval(msgCheck,config.MSG_CHECK_DELAY);
 }
 async function initPage() {
-  page.exposeFunction('msgCheck',mensajesEnviados);
-  page.exposeFunction('newMsg',mensajesNuevos);
+  page.exposeFunction('msgCheck',onMsgSent);
+  page.exposeFunction('newMsg',onMsgReceived);
   await page.evaluate(()=>{
     let mut = new MutationObserver((muts) => {
       muts.forEach(node => {
@@ -58,7 +60,7 @@ async function initPage() {
     mut.observe(element,{attributeFilter:["data-icon"],subtree:true});
   })
 }
-function mensajesEnviados (num,status) {
+function onMsgSent (num,status) {
   delete mensajes[num];
   switch (status) {
     case selector.statusCheck: 
@@ -72,7 +74,7 @@ function mensajesEnviados (num,status) {
       break;
   }
 }
-function mensajesNuevos (num,msg,n) {
+function onMsgReceived (num,msg,n) {
   let oldMsg = mensajes[num];
   if (oldMsg) {
     if (oldMsg!=(nvmsg = n+msg)) {
