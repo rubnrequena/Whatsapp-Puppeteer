@@ -13,6 +13,10 @@ router.get('/pantalla',async (req,res) => {
   await ws.getScreen();
   res.render('login');
 })
+router.get('/pantalla/:url',async (req,res) => {  
+  await ws.getScreen("screen");
+  res.render('login');
+})
 router.get('/enviar/pic/:num/',async (req,res) => {
   let img = req.query.src;
   let msg = req.query.msg;
@@ -42,10 +46,4 @@ router.get("/difundir",(req,res) => {
     res.json({ok:"mensajes enviados"})
   }
 })
-router.get("/format/:num",(req,res) => {  
-  
-})
-
-num = formatPhone("+56987702968");
-
 module.exports = router;
