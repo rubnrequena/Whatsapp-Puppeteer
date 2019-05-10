@@ -86,6 +86,7 @@ function onMsgReceived (num,msg,n) {
     messageRcv(num,msg);
   }
 }
+function msgCheck() {
   page.evaluate(() => {
     //check mensajes
     let nodes = document.querySelectorAll('.OUeyt');
