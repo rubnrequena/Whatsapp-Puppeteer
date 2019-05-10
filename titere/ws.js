@@ -127,6 +127,7 @@ function messageRcv (num,msg) {
  */
 async function typeMsg(msg,input) {
   await page.waitForSelector(input);
+  await page.click(input);
   console.log(clwarn(`Escribiendo: ${msg}`));
   
   await page.evaluate(msg=>{
@@ -142,14 +143,14 @@ async function typeMsg(msg,input) {
   await page.keyboard.down("ControlLeft");
   await page.keyboard.press("KeyV");
   await page.keyboard.up("ControlLeft");
-  await page.keyboard.press("Enter");
 
 }
 async function send(user,msg) { 
   if (isSending) return queueMsg.push({user,msg});
   isSending=true;
   if (await findUser(user)) {
-    await typeMsg(msg,selector.chatInput);
+    await typeMsg(msg,selector.chatInput);    
+    await page.keyboard.press("Enter");
     isSending=false;
     nextPending();
   } else await sendToNumber(user,msg);
@@ -170,9 +171,8 @@ async function sendToNumber(num,msg) {
   isSending=false;
 }
 async function findUser (num) {
-  let search = await page.$(selector.searchInput);
-  await search.click();
-  await page.keyboard.type(num);  
+  await typeMsg(num,selector.searchInput);
+  
   let sel = selector.userNum(formatPhone(num));
   let user = await page.$(sel);
   if (user) {
@@ -203,8 +203,7 @@ async function sendPicture(num,uri,msg='') {
     await wget(uri,{output});
     uri = output;
   }
-
-  if (findUser(num)) {
+  if (await findUser(num)) {
     await page.waitForSelector(selector.btnSendAssets);
     await page.click(selector.btnSendAssets);
     await page.waitForSelector(selector.btnSelectImg);    
@@ -213,8 +212,7 @@ async function sendPicture(num,uri,msg='') {
     await upload.uploadFile(file);
     await page.waitForSelector('._3hV1n.yavlE');
     await typeMsg(msg,selector.imgSendInput);
-    //TODO: writte if msg
-    //await page.keyboard.press("Enter");
+    await page.keyboard.press("Enter");
   }
 }
 const selector = {
