@@ -110,7 +110,7 @@ function msgCheck() {
         } else num = nombre;
 
         let asset;
-        asset = await page.$('.status-image')?"pic":false;
+        asset = document.querySelector('.status-image')?"pic":false;
         console.log(`Mensaje encontrado de ${num} dice ${msg}`);
         window.newMsg(num,msg,{nMsg,asset});
       }
