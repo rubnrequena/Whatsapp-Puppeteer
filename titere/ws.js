@@ -84,7 +84,6 @@ function mensajesNuevos (num,msg,n) {
     messageRcv(num,msg);
   }
 }
-function verificarMensajes() {
   page.evaluate(() => {
     //check mensajes
     let nodes = document.querySelectorAll('.OUeyt');
@@ -182,6 +181,31 @@ async function getScreen(name="lastQR",_page) {
   _page = _page || page;
   await _page.screenshot({path:`public/images/${name}.jpg`});
 }
+/**
+ * @param {String} num Numero de destino
+ * @param {String} uri Uri del archivo a enviar
+ * @param {String} msg Opcional: mensaje adjuntado a la imagen
+ */
+async function sendPicture(num,uri,msg='') {
+  if (uri.match(/http/)) {
+    let name = uri.split("/").pop();
+    let output = `./public/${name}`;    
+    await wget(uri,{output});
+    uri = output;
+  }
+
+  if (findUser(num)) {
+    await page.waitForSelector(selector.btnSendAssets);
+    await page.click(selector.btnSendAssets);
+    await page.waitForSelector(selector.btnSelectImg);    
+    let upload = await page.$(selector.inputSendImg);
+    let file = path.relative(process.cwd(),uri);
+    await upload.uploadFile(file);
+    await page.waitForSelector('._3hV1n.yavlE');
+    //TODO: writte if msg
+    await page.keyboard.press("Enter");
+  }
+}
 const selector = {
   mainPanel:"#pane-side",
   mainPanelInner:'.RLfQR',
@@ -190,6 +214,7 @@ const selector = {
   userPic:(num='') => `#pane-side img[src*="${num}%40"]`,
   userNum:(num='') => `#pane-side span[title*="${num}"]`,
   chatInput:'#main > footer div.selectable-text[contenteditable]',
+  imgSendInput:'#app div._2S1VP.copyable-text.selectable-text',
   msgSending:'span[data-icon="status-time"]',
   msgCheck:'span[data-icon="status-dblcheck-ack"]',
   msgDblCheck:'span[data-icon="status-check"]',
@@ -198,11 +223,14 @@ const selector = {
   statusCheck:'status-check',
   statusCheckAck:'status-dblcheck-ack',
   statusCheckDbl:'status-dblcheck',
-  activarApp:'.landing-main'
+  activarApp:'.landing-main',
+  btnSendAssets:'#main > header > div.YmSrp > div > div:nth-child(2) > div',
+  btnSelectImg:'#main > header > div.YmSrp > div > div.rAUz7._3TbsN > span > div > div > ul > li:nth-child(1) > button',
+  inputSendImg:'#main > header > div.YmSrp > div > div.rAUz7._3TbsN > span > div > div > ul > li:nth-child(1) > button > input[type=file]'
 }
 async function currentPage(params) {
   return page;
 }
 module.exports = {
-  init,findUser,send,isSending,currentPage,getScreen,services
+  init,findUser,send,sendPicture,isSending,currentPage,getScreen,services
 }

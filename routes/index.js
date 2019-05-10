@@ -3,6 +3,8 @@ var router = express.Router();
 const formatPhone = require('../config/formatPhone');
 const ws = require('../titere/ws');
 const wsconfig =require('../config/WSConfig')(ws);
+const wget = require("node-wget-promise");
+const path = require('path');
 
 router.get("/", (req,res) => {
   res.send("ws ready");
@@ -10,6 +12,15 @@ router.get("/", (req,res) => {
 router.get('/pantalla',async (req,res) => {
   await ws.getScreen();
   res.render('login');
+})
+router.get('/enviar/pic/:num/',async (req,res) => {
+  let img = req.query.src;
+  let msg = req.query.msg;
+  let num = req.params.num;
+  await ws.sendPicture(num,img,msg).catch(e=>{
+    return {error:"conection_timeout"};
+  });
+  res.json({ok:"mensaje enviado"})
 })
 router.get("/enviar/:num",async (req,res) => {
   if (req.query.msg && req.query.msg!="") {
