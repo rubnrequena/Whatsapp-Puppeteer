@@ -1,6 +1,6 @@
 const titere = require('../titere/index');
 const chalk = require('chalk');
-const log = require('single-line-log').stdout;
+
 const formatPhone = require('../config/formatPhone');
 const config = require('../config/index');
 const services = require('../titere/BotHandler');
@@ -13,6 +13,7 @@ const clwarn = chalk.yellow;
 var page;
 var queueMsg = [];
 var isSending;
+var isReady;
 var mensajes={};
 
 async function init() {
@@ -59,6 +60,7 @@ async function initPage() {
     let element = document.getElementById('pane-side');
     mut.observe(element,{attributeFilter:["data-icon"],subtree:true});
   })
+  isReady=true;
 }
 function onMsgSent (num,status) {
   delete mensajes[num];
@@ -146,7 +148,7 @@ async function typeMsg(msg,input) {
 
 }
 async function send(user,msg) { 
-  if (isSending) return queueMsg.push({user,msg});
+  if (isSending && isReady) return queueMsg.push({user,msg});
   isSending=true;
   if (await findUser(user)) {
     await typeMsg(msg,selector.chatInput);    
@@ -199,7 +201,7 @@ async function getScreen(name="lastQR",_page) {
 async function sendPicture(num,uri,msg='') {
   if (uri.match(/http/)) {
     let name = uri.split("/").pop();
-    let output = `./public/${name}`;    
+    let output = `./public/images/ws/${name}`;    
     await wget(uri,{output});
     uri = output;
   }

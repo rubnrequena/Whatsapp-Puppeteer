@@ -1,6 +1,8 @@
 const axios = require('axios');
 const ping = require('ping');
 
+var memo = {};
+
 module.exports = (ws) => {
   ws.services.addListener("#eco",(num,msg)=>{
     ws.send(num,msg.toLowerCase().replace('#eco','dijiste:','gi'));
@@ -32,6 +34,21 @@ module.exports = (ws) => {
     let m = /(\d+) ([\w\W]+)/.exec(msg);
     console.log("mensaje",m);
     ws.send(m[1],`Usted ha recibido un mensaje anonimo:\n${m[2]}`);
+  })
+  ws.services.addListener(":memo",(num,msg) => {
+    let w = /:memo (?<name>[\w]+) (?<text>[\w\s]+)/;
+    let r = /:memo (?<name>[\w]+)$/;
+    let m = r.exec(msg);
+    if (m) {
+      let mem = memo[m.groups.name];
+      if (mem) ws.send(num,`Recordando *${m.groups.name}*\n${mem}`);
+      else ws.send(num,`No tengo recuerdos sobre: *${m.groups.name}*`)
+    } else {
+      if (m = w.exec(msg)) {
+        memo[m.groups.name] = m.groups.text;
+        ws.send(num,"Memorizado..!");
+      } else ws.send(num,"Formato Invalido");      
+    }
   })
   ws.init();
   console.log("ws inicializado");

@@ -14,16 +14,13 @@
     "express": "~4.16.0",
     "fs": "0.0.1-security",
     "http-errors": "~1.6.2",
-    "jade": "~1.11.0",
     "libphonenumber-js": "^1.7.15",
     "moment": "^2.24.0",
     "mongoose": "^5.5.2",
     "morgan": "~1.9.0",
     "node-wget-promise": "^0.1.6",
     "nodemon": "^1.18.11",
-    "ping": "^0.2.2",
     "pug": "2.0.0-beta11",
-    "puppeteer-core": "^1.12.2",
-    "single-line-log": "^1.1.2"
+    "puppeteer-core": "^1.12.2"
   }
 }

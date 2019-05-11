@@ -4,7 +4,7 @@ var browser;
 async function init() {
   if (!browser) {
     browser = await puppeteer.launch({
-      headless:true,
+      headless:false,
       executablePath: "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
       userDataDir:"C:\\chromeuser",
       args: [
