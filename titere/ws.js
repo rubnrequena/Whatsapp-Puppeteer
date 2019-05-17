@@ -1,3 +1,5 @@
+/* eslint-disable no-cond-assign */
+/* eslint-disable no-console */
 const titere = require('../titere/index');
 const chalk = require('chalk');
 
@@ -7,39 +9,50 @@ const services = require('../titere/BotHandler');
 const path = require('path');
 const wget = require('node-wget-promise');
 
+const chat = require('../model/Chat');
+
 const clerror = chalk.red;
 const clgreen = chalk.green;
 const clwarn = chalk.yellow;
 var page;
-var queueMsg = [];
-var isSending;
-var isReady;
+var listoEnviar=false;
 var mensajes={};
+var queue=[];
+
+var msgCheckInt;
+function setCheck(activo) {
+  if (activo) msgCheckInt = setInterval(msgCheck,config.MSG_CHECK_DELAY);
+  else clearInterval(msgCheckInt);
+}
 
 async function init() {
   if (!page) {
     page = await titere.newPage();      
     
-    await page.goto('https://web.whatsapp.com/',{waitUntil:"networkidle2"});
-    console.log("WS: Cargando...");    
-    while (!await page.$('._1FKgS .app')) {
-      page.waitFor(500);
-      if (await page.$('.landing-main')) {
-        log("Esperando validacion QR http://127.0.0.1/ws/qr");
-        await page.screenshot({path:"public/images/lastQR.jpg"});
-        page.waitFor(5000);
-      }
-    }
-    console.log("WS: Ready...");    
-    initPage();
+    await page.goto('https://web.whatsapp.com/',{waitUntil:"networkidle2"});    
+    await initPage();
+    await leerMensajes();
+    nextPending();
   }  
-  setInterval(msgCheck,config.MSG_CHECK_DELAY);
+  setCheck(true);
 }
 async function initPage() {
-  page.exposeFunction('msgCheck',onMsgSent);
-  page.exposeFunction('newMsg',onMsgReceived);
-  await page.evaluate(()=>{
+  console.log("WS: Cargando...");    
+  while (!await page.$('._1FKgS .app')) {
+    page.waitFor(500);
+    if (await page.$('.landing-main')) {
+      console.log("Esperando validacion QR http://127.0.0.1/ws/qr");
+      await page.screenshot({path:"public/images/lastQR.jpg"});
+      page.waitFor(5000);
+    }
+  }
+  console.log("WS: Ready...");    
+  page.on("dialog", (dialog) => dialog.accept());
+  await page.exposeFunction('msgCheck',onMensajeEnviado);
+  await page.exposeFunction('newMsg',onMsgReceived);
+  await page.evaluate(()=>{    
     let mut = new MutationObserver((muts) => {
+      console.log("CAMBIOS ENCONTRADOS",muts);
       muts.forEach(node => {
         let span = node.target;
         let uDiv = span.closest('._2EXPL');
@@ -59,19 +72,30 @@ async function initPage() {
     })
     let element = document.getElementById('pane-side');
     mut.observe(element,{attributeFilter:["data-icon"],subtree:true});
+    console.log("MONITOR DE ENVIO: LISTO!!");
   })
-  isReady=true;
+  listoEnviar=true;
 }
-function onMsgSent (num,status) {
-  delete mensajes[num];
+async function leerMensajes() {
+  queue = await chat.find({enviado:{$exists:false}});
+  console.log(`WS: ${queue.length} mensajes por enviar`);
+  nextPending();
+}
+async function onMensajeEnviado (num,status) {
+  console.log("onMensajeEnviado",num,status);
+  num = num.replace(/[+\s]+/g,"");
+  //delete mensajes[num];
   switch (status) {
-    case selector.statusCheck: 
-      console.log(clwarn(`Enviado: ${num}`)); 
+    case selector.msgEnviado:
+      await chat.updateMany({numero:num,enviado:{$exists:false}},{$currentDate:{enviado:true}});      
+      console.log(clwarn(`Enviado: ${num}`));
       break;
-    case selector.statusCheckDbl: 
+    case selector.msgLeido: 
+      await chat.updateMany({numero:num,recibido:{$exists:false}},{$currentDate:{recibido:true}});
       console.log(clwarn(`Recibido: ${num}`)); 
       break;
-    case selector.statusCheckAck: 
+    case selector.msgRecibido: 
+      await chat.updateMany({numero:num,leido:{$exists:false}},{$currentDate:{leido:true,recibido:true}});
       console.log(clwarn(`Leido: ${num}`));
       break;
   }
@@ -79,7 +103,7 @@ function onMsgSent (num,status) {
 function onMsgReceived (num,msg,n) {
   let oldMsg = mensajes[num];
   if (oldMsg) {
-    if (oldMsg!=(nvmsg = n+msg)) {
+    if (oldMsg!=(n+msg)) {
       mensajes[num] = n+msg;
       messageRcv(num,msg);
     }
@@ -88,7 +112,7 @@ function onMsgReceived (num,msg,n) {
     messageRcv(num,msg);
   }
 }
-function msgCheck() {
+function msgCheck() {  
   page.evaluate(() => {
     //check mensajes
     let nodes = document.querySelectorAll('.OUeyt');
@@ -119,18 +143,15 @@ function msgCheck() {
     },300);
   }).catch(e=>console.log(clerror(e.name),e));
 }
-function messageRcv (num,msg) {  
+function messageRcv (num,msg) {
   console.log(clgreen(`${num} dice: ${msg}`));
-  services.dispatch(num,msg);
+  let hook = /^#(\w+) ([\w\W]+)/.exec(msg);
+  console.log("hook",hook[1]);
+  require(`../handler/${hook[1]}`)(num,hook[2]);
 }
-/**
- * @param {String} msg Mensaje a enviar
- * @param {String} input Elemento donde escribir
- */
 async function typeMsg(msg,input) {
   await page.waitForSelector(input);
-  await page.click(input);
-  console.log(clwarn(`Escribiendo: ${msg}`));
+  await page.click(input,{timeout:config.PAGE_LOAD_TIMEOUT});
   
   await page.evaluate(msg=>{
     let textarea = document.createElement("textarea");
@@ -141,41 +162,52 @@ async function typeMsg(msg,input) {
     document.body.removeChild(textarea);
   },msg);
   
-  await page.click(input);
+  await page.click(input,{timeout:config.PAGE_LOAD_TIMEOUT});
   await page.keyboard.down("ControlLeft");
   await page.keyboard.press("KeyV");
   await page.keyboard.up("ControlLeft");
 
 }
-async function send(user,msg) { 
-  if (isSending && isReady) return queueMsg.push({user,msg});
-  isSending=true;
-  if (await findUser(user)) {
-    await typeMsg(msg,selector.chatInput);    
-    await page.keyboard.press("Enter");
-    isSending=false;
-    nextPending();
-  } else await sendToNumber(user,msg);
+async function enviar(numero,texto) {
+  var msg = new chat({
+    numero,texto
+  });
+  await msg.save();    
+  queue.push(msg);
+  nextPending();
+  return msg;
 }
-async function sendToNumber(num,msg) {
-  let apiPage = await titere.newPage();
-  console.log("WS: Enviando msg a travez de api.whatsapp.com");
-  await apiPage.goto(`https://api.whatsapp.com/send?phone=${num}&text=${encodeURI(msg)}&source=&data=`,{timeout:config.PAGE_LOAD_TIMEOUT});  
-  await apiPage.click("#action-button");
-  await apiPage.waitForSelector('._35EW6',{timeout:config.PAGE_LOAD_TIMEOUT});
-  await apiPage.waitFor(500);
-  await apiPage.click("._35EW6");
+async function _enviar (mensaje) {
+  listoEnviar=false;
+  if (await findUser(mensaje.numero)) {
+    console.log(`sms: ${mensaje.texto}`);
+    await typeMsg(mensaje.texto,selector.chatInput);    
+    await page.keyboard.press("Enter");
+  } else {    
+    await enviarNumero(mensaje.numero,mensaje.texto);    
+  }
 
-  page.close();
-  page = apiPage;
-  await initPage();
-
-  isSending=false;
+  listoEnviar=true;nextPending();
+}
+async function enviarNumero(num,msg) {
+  console.log(`WS: APIWS ${num} > ${msg}`);
+  setCheck(false);
+  await page.goto(`https://web.whatsapp.com/send?phone=${num}&text=${encodeURI(msg)}&source=&data=`,{waitUntil:"networkidle2",timeout:config.PAGE_LOAD_TIMEOUT});
+  await enviarMensaje();  
+  setCheck(true);
+  
+  async function enviarMensaje () {
+    await page.waitForSelector('._35EW6',{timeout:config.PAGE_LOAD_TIMEOUT}).catch(enviarMensaje);
+    await page.waitFor(500);
+    await page.click("._35EW6",{timeout:config.PAGE_LOAD_TIMEOUT}); 
+    await page.waitFor(500);
+  }
 }
 async function findUser (num) {
+  console.log(`buscando: ${num}`);
   await typeMsg(num,selector.searchInput);
   
-  let sel = selector.userNum(formatPhone(num));
+  let sel = selector.userNum( formatPhone(num));
   let user = await page.$(sel);
   if (user) {
     await page.keyboard.press('Enter');
@@ -184,21 +216,19 @@ async function findUser (num) {
   return false;
 }
 async function nextPending() {
-  if (queueMsg.length>0) {
-    let msg = queueMsg.shift();
-    await send(msg.user,msg.msg);
+  console.log(`Buscando otros mensajes... im rdy? ${listoEnviar?"si":"no"}`);
+  if (listoEnviar) {
+    if (queue.length>0) {      
+      let msg = queue.shift();//await chat.findOne({ enviado : { $exists: false } });
+      await _enviar(msg);
+    }
   }
 }
 async function getScreen(name="lastQR",_page) {
   _page = _page || page;
-  await _page.screenshot({path:`public/images/${name}.jpg`});
+  await _page.screenshot({path:`public/pantallas/${name}.jpg`});
 }
-/**
- * @param {String} num Numero de destino
- * @param {String} uri Uri del archivo a enviar
- * @param {String} msg Opcional: mensaje adjuntado a la imagen
- */
-async function sendPicture(num,uri,msg='') {
+async function enviarImagen(num,uri,msg='') {
   if (uri.match(/http/)) {
     let name = uri.split("/").pop();
     let output = `./public/images/ws/${name}`;    
@@ -210,9 +240,11 @@ async function sendPicture(num,uri,msg='') {
     await page.click(selector.btnSendAssets);
     await page.waitForSelector(selector.btnSelectImg);    
     let upload = await page.$(selector.inputSendImg);
+    // eslint-disable-next-line no-undef
     let file = path.relative(process.cwd(),uri);
     await upload.uploadFile(file);
     await page.waitForSelector('._3hV1n.yavlE');
+    console.log(`imagen txt: ${msg}`);
     await typeMsg(msg,selector.imgSendInput);
     await page.keyboard.press("Enter");
   }
@@ -231,17 +263,24 @@ const selector = {
   msgDblCheck:'span[data-icon="status-check"]',
   newChat:'#side > header > div._20NlL > div > span > div:nth-child(2) > div',
   newChatPanel:'._2fq0t',
-  statusCheck:'status-check',
-  statusCheckAck:'status-dblcheck-ack',
-  statusCheckDbl:'status-dblcheck',
+  msgEnviando:'status-time',
+  msgEnviado:'status-check',
+  msgRecibido:'status-dblcheck-ack',
+  msgLeido:'status-dblcheck',
   activarApp:'.landing-main',
   btnSendAssets:'#main > header > div.YmSrp > div > div:nth-child(2) > div',
   btnSelectImg:'#main > header > div.YmSrp > div > div.rAUz7._3TbsN > span > div > div > ul > li:nth-child(1) > button',
   inputSendImg:'#main > header > div.YmSrp > div > div.rAUz7._3TbsN > span > div > div > ul > li:nth-child(1) > button > input[type=file]'
 }
-async function currentPage(params) {
+async function currentPage() {
   return page;
 }
+
+function mensajesEnCola() {
+  return queue;
+}
+
 module.exports = {
-  init,findUser,send,sendPicture,isSending,currentPage,getScreen,services
+  init,findUser,enviar,enviarImagen,currentPage,getScreen,services,
+  mensajesEnCola
 }

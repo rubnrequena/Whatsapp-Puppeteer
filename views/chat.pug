@@ -1,0 +1,43 @@
+doctype html
+html(lang="en")
+  head
+    meta(charset="utf-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no")
+    meta(name="description" content="")
+    meta(name="author" content="")
+    title WaBot
+    // Bootstrap core CSS
+    link(href="https://getbootstrap.com/docs/4.0/dist/css/bootstrap.min.css" rel="stylesheet")
+    // Custom styles for this template
+    link(href="https://getbootstrap.com/docs/4.0/examples/product/product.css" rel="stylesheet")
+  body
+    nav.site-header.sticky-top.py-1
+      .container.d-flex.flex-column.flex-md-row.justify-content-between
+        a.py-2(href="#") wChat
+    .col-sm-6.offset-3
+      form#chat.form-horizontal(action="/chat/" method="get")
+        .form-group
+          .label-form Departamento
+          select#dep.form-control(name="departamento")
+            each valor in deps
+              option(value=valor)= valor
+        .form-group
+          .label-form Nombre
+          input#nombre.form-control(value="Ruben Requena")
+        .form-group
+          .label-form Contacto
+          input#contacto.form-control(value="584149970167")
+          span.text-muted Numero de telefono o correo
+        .form-group
+          .label-form Mensaje
+          textarea#mensaje.form-control Hola.. quiero ser atendido..!
+        .form-group
+          button.btn.btn-dark(type="submit") Enviar
+    //  Bootstrap core JavaScript
+    script(src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous")
+    
+    script(src="https://getbootstrap.com/docs/4.0/assets/js/vendor/popper.min.js")
+    script(src="https://getbootstrap.com/docs/4.0/dist/js/bootstrap.min.js")
+    script(src="https://getbootstrap.com/docs/4.0/assets/js/vendor/holder.min.js")
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js')
+    script(src="/js/chat.js")

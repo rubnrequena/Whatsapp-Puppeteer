@@ -1,9 +1,18 @@
 const mongoose = require('mongoose');
 
 const chat = new mongoose.Schema({
-  origen:String,
-  destino:String,
-  text:String,
+  numero:{
+    type:String,
+    required:true
+  },
+  texto:{
+    type:String,
+    required:true
+  },
+  registrado:{
+    type:Date,
+    default:new Date
+  },
   enviado:Date,
   recibido:Date,
   leido:Date,
