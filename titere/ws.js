@@ -50,13 +50,17 @@ async function initPage() {
   page.on("dialog", (dialog) => dialog.accept());
   await page.exposeFunction('msgCheck',onMensajeEnviado);
   await page.exposeFunction('newMsg',onMsgReceived);
-  await page.evaluate(()=>{    
+  await initMonitorEnviados();
+  listoEnviar=true;
+}
+async function initMonitorEnviados () {
+	await page.waitForSelector("#pane-side");
+    await page.evaluate(()=>{    
     let mut = new MutationObserver((muts) => {
-      console.log("CAMBIOS ENCONTRADOS",muts);
       muts.forEach(node => {
         let span = node.target;
         let uDiv = span.closest('._2EXPL');
-        let eNumero = uDiv.querySelector('._3TEwt > span:nth-child(1)');
+        let eNumero = uDiv.querySelector('._25Ooe span[title]');
         if (eNumero) {
           let nombre = eNumero.title;
           let num = nombre.match(/(\d{1,3}) (\d{1,3})-(\d+)/);
@@ -72,9 +76,8 @@ async function initPage() {
     })
     let element = document.getElementById('pane-side');
     mut.observe(element,{attributeFilter:["data-icon"],subtree:true});
-    console.log("MONITOR DE ENVIO: LISTO!!");
+    
   })
-  listoEnviar=true;
 }
 async function leerMensajes() {
   queue = await chat.find({enviado:{$exists:false}});
@@ -82,7 +85,6 @@ async function leerMensajes() {
   nextPending();
 }
 async function onMensajeEnviado (num,status) {
-  console.log("onMensajeEnviado",num,status);
   num = num.replace(/[+\s]+/g,"");
   //delete mensajes[num];
   switch (status) {
@@ -180,19 +182,30 @@ async function enviar(numero,texto) {
 async function _enviar (mensaje) {
   listoEnviar=false;
   if (await findUser(mensaje.numero)) {
-    console.log(`sms: ${mensaje.texto}`);
     await typeMsg(mensaje.texto,selector.chatInput);    
     await page.keyboard.press("Enter");
   } else {    
     await enviarNumero(mensaje.numero,mensaje.texto);    
   }
 
-  listoEnviar=true;nextPending();
+  listoEnviar=true;
+  await nextPending();
 }
 async function enviarNumero(num,msg) {
   console.log(`WS: APIWS ${num} > ${msg}`);
   setCheck(false);
   await page.goto(`https://web.whatsapp.com/send?phone=${num}&text=${encodeURI(msg)}&source=&data=`,{waitUntil:"networkidle2",timeout:config.PAGE_LOAD_TIMEOUT});
+ console.log("WS: Cargando...");    
+  while (!await page.$('._1FKgS .app')) {
+    await page.waitFor(500);
+    if (await page.$('.landing-main')) {
+      console.log("Esperando validacion QR http://127.0.0.1/ws/qr");
+      await page.screenshot({path:"public/images/lastQR.jpg"});
+      await page.waitFor(5000);
+    }
+  }
+  console.log("WS: Ready..."); 
+  await initMonitorEnviados();   
   await enviarMensaje();  
   setCheck(true);
   
@@ -204,9 +217,8 @@ async function enviarNumero(num,msg) {
   }
 }
 async function findUser (num) {
-  console.log(`buscando: ${num}`);
   await typeMsg(num,selector.searchInput);
-  
+  await page.waitFor (200);
   let sel = selector.userNum( formatPhone(num));
   let user = await page.$(sel);
   if (user) {
@@ -216,7 +228,6 @@ async function findUser (num) {
   return false;
 }
 async function nextPending() {
-  console.log(`Buscando otros mensajes... im rdy? ${listoEnviar?"si":"no"}`);
   if (listoEnviar) {
     if (queue.length>0) {      
       let msg = queue.shift();//await chat.findOne({ enviado : { $exists: false } });
