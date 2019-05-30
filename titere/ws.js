@@ -38,12 +38,12 @@ async function init() {
 }
 async function initPage() {
   console.log("WS: Cargando...");    
-  while (!await page.$('._1FKgS .app')) {
-    page.waitFor(500);
+  while (!await page.$('.app')) {
+    await page.waitFor(500);
     if (await page.$('.landing-main')) {
-      console.log("Esperando validacion QR http://127.0.0.1/ws/qr");
-      await page.screenshot({path:"public/images/lastQR.jpg"});
-      page.waitFor(5000);
+      console.log("Esperando validacion QR http://127.0.0.1/activar");
+      await page.screenshot({path:"public/pantallas/lastQR.jpg"});
+      await page.waitFor(5000);
     }
   }
   console.log("WS: Ready...");    
@@ -59,8 +59,8 @@ async function initMonitorEnviados () {
     let mut = new MutationObserver((muts) => {
       muts.forEach(node => {
         let span = node.target;
-        let uDiv = span.closest('._2EXPL');
-        let eNumero = uDiv.querySelector('._25Ooe span[title]');
+        let uDiv = span.offsetParent;
+        let eNumero = uDiv.querySelector('span[title]');
         if (eNumero) {
           let nombre = eNumero.title;
           let num = nombre.match(/(\d{1,3}) (\d{1,3})-(\d+)/);
@@ -117,17 +117,19 @@ function onMsgReceived (num,msg,n) {
 function msgCheck() {  
   page.evaluate(() => {
     //check mensajes
-    let nodes = document.querySelectorAll('.OUeyt');
+    let nodes = document.querySelectorAll('.P6z4j');
     nodes.forEach(e => {
-      let uDiv = e.closest('._2EXPL');
+      let uDiv = e.closest('._2WP9Q');
       let nMsg = e.innerText;
-      let salida = uDiv.querySelector('._1VfKB');
-      if (salida) {return;} //usuario esta 
+	  console.log("msg",nMsg);
+      //let salida = uDiv.querySelector('._1VfKB');
+      //if (salida) {return;} //usuario esta 
 
-      let msgSpan = uDiv.querySelector('._2_LEW');
+      let msgSpan = uDiv.querySelector('._19RFN._1ovWX');	  
       if (!msgSpan) return; //usuario esta escribiendo
+	  console.log("msgSpan",msgSpan.innerText);
       let msg = msgSpan.innerText;
-      let eNumero = uDiv.querySelector('._3TEwt > span:nth-child(1)');
+      let eNumero = uDiv.querySelector('span[title]');
       if (eNumero) {
         let nombre = eNumero.title;
         let num = nombre.match(/(\d{1,3}) (\d{1,3})-(\d+)/);
@@ -195,12 +197,12 @@ async function enviarNumero(num,msg) {
   console.log(`WS: APIWS ${num} > ${msg}`);
   setCheck(false);
   await page.goto(`https://web.whatsapp.com/send?phone=${num}&text=${encodeURI(msg)}&source=&data=`,{waitUntil:"networkidle2",timeout:config.PAGE_LOAD_TIMEOUT});
- console.log("WS: Cargando...");    
+ console.log("WS: Cargando..."); 
   while (!await page.$('._1FKgS .app')) {
     await page.waitFor(500);
     if (await page.$('.landing-main')) {
       console.log("Esperando validacion QR http://127.0.0.1/ws/qr");
-      await page.screenshot({path:"public/images/lastQR.jpg"});
+      await getScreen();
       await page.waitFor(5000);
     }
   }
@@ -232,7 +234,7 @@ async function nextPending() {
     if (queue.length>0) {      
       let msg = queue.shift();//await chat.findOne({ enviado : { $exists: false } });
       await _enviar(msg);
-    }
+    } else console.log(clerror(new Date().toLocaleTimeString()));
   }
 }
 async function getScreen(name="lastQR",_page) {
@@ -246,7 +248,7 @@ async function enviarImagen(num,uri,msg='') {
     await wget(uri,{output});
     uri = output;
   }
-  if (await findUser(num)) {
+  if (await findUser(num)) {	
     await page.waitForSelector(selector.btnSendAssets);
     await page.click(selector.btnSendAssets);
     await page.waitForSelector(selector.btnSelectImg);    
@@ -254,7 +256,7 @@ async function enviarImagen(num,uri,msg='') {
     // eslint-disable-next-line no-undef
     let file = path.relative(process.cwd(),uri);
     await upload.uploadFile(file);
-    await page.waitForSelector('._3hV1n.yavlE');
+    await page.waitForSelector(selector.imgSendInput);
     console.log(`imagen txt: ${msg}`);
     await typeMsg(msg,selector.imgSendInput);
     await page.keyboard.press("Enter");
@@ -263,12 +265,12 @@ async function enviarImagen(num,uri,msg='') {
 const selector = {
   mainPanel:"#pane-side",
   mainPanelInner:'.RLfQR',
-  searchInput:".jN-F5",
+  searchInput:"._2zCfw",
   userDiv:'._2EXPL',
   userPic:(num='') => `#pane-side img[src*="${num}%40"]`,
   userNum:(num='') => `#pane-side span[title*="${num}"]`,
   chatInput:'#main > footer div.selectable-text[contenteditable]',
-  imgSendInput:'#app div._2S1VP.copyable-text.selectable-text',
+  imgSendInput:'#app > div > div > div._37f_5 > div._3HZor._2rI9W > span > div > span > div > div > div.rK2ei.USE1O > div > span > div > div._3cDQo > div > div._3ogpF > div._3FeAD._2YgjU._1pSqv > div._3u328.copyable-text.selectable-text',
   msgSending:'span[data-icon="status-time"]',
   msgCheck:'span[data-icon="status-dblcheck-ack"]',
   msgDblCheck:'span[data-icon="status-check"]',
@@ -279,9 +281,9 @@ const selector = {
   msgRecibido:'status-dblcheck-ack',
   msgLeido:'status-dblcheck',
   activarApp:'.landing-main',
-  btnSendAssets:'#main > header > div.YmSrp > div > div:nth-child(2) > div',
-  btnSelectImg:'#main > header > div.YmSrp > div > div.rAUz7._3TbsN > span > div > div > ul > li:nth-child(1) > button',
-  inputSendImg:'#main > header > div.YmSrp > div > div.rAUz7._3TbsN > span > div > div > ul > li:nth-child(1) > button > input[type=file]'
+  btnSendAssets:'div[title="Adjuntar"]',
+  btnSelectImg:'#main > header > div._2kYeZ > div > div._3j8Pd.GPmgf > span > div > div > ul > li:nth-child(1) > button',
+  inputSendImg:'#main > header > div._2kYeZ > div > div._3j8Pd.GPmgf > span > div > div > ul > li:nth-child(1) > button > input[type=file]'
 }
 async function currentPage() {
   return page;

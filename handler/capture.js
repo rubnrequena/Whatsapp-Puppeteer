@@ -4,7 +4,10 @@ const {Wit} = require('node-wit');
 var wit = new Wit({accessToken:'HRLMDJW2M6GEBGPSWTG42WF5JRQKSUW4'});
 
 module.exports = async (num,msg) => {
-  msg = msg.replace("https://","http://");
+let http = msg.indexOf("http")
+  if (http==0) msg = msg.replace("https://","http://");
+  else msg = `http://${msg}`;
+  msg = msg.replace("www.","");
   let w = await wit.message(msg);
   
   if (!w.entities.direccion) return ws.enviar(num,"No reconozco la direccion..");
