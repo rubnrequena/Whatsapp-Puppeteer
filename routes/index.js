@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 const crypto = require('crypto');
 const browser = require('../titere/index');
+const chalk = require('chalk');
 const ws = require('../titere/ws');
 ws.init();
 
@@ -97,6 +98,7 @@ router.get("/lote",(req,res) => {
     lote = JSON.parse(req.query.lote);    
   } else lote = crearLote(["584149970167","584148261242","56987702968","584126962202"],req.query.n || 40);
   console.log("lote",lote);
+  console.log(chalk.red(new Date().toLocaleTimeString()));
   lote.forEach(async item => {
     await ws.enviar(item.numero,item.texto);
   });
