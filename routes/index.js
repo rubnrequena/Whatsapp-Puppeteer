@@ -21,7 +21,7 @@ router.get('/pantalla',async (req,res) => {
     let view = req.query.v.split(",");
     br.setViewport({width:parseInt(view[0]),height:parseInt(view[1])});
   }
-  await br.goto(req.query.url,{waitUntil:"networkidle2"});
+  await br.goto(req.query.url,{waitUntil:"networkidle2",timeout:60000});
   let img = crypto.createHash('sha256').update(req.query.url).digest('hex');
   await ws.getScreen(img,br);
   if (req.query.num) {

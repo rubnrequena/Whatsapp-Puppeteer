@@ -198,7 +198,7 @@ async function enviarNumero(num,msg) {
   setCheck(false);
   await page.goto(`https://web.whatsapp.com/send?phone=${num}&text=${encodeURI(msg)}&source=&data=`,{waitUntil:"networkidle2",timeout:config.PAGE_LOAD_TIMEOUT});
  console.log("WS: Cargando..."); 
-  while (!await page.$('._1FKgS .app')) {
+  while (!await page.$('#app')) {
     await page.waitFor(500);
     if (await page.$('.landing-main')) {
       console.log("Esperando validacion QR http://127.0.0.1/ws/qr");
@@ -212,9 +212,9 @@ async function enviarNumero(num,msg) {
   setCheck(true);
   
   async function enviarMensaje () {
-    await page.waitForSelector('._35EW6',{timeout:config.PAGE_LOAD_TIMEOUT}).catch(enviarMensaje);
+    await page.waitForSelector('._3M-N-',{timeout:config.PAGE_LOAD_TIMEOUT}).catch(enviarMensaje);
     await page.waitFor(500);
-    await page.click("._35EW6",{timeout:config.PAGE_LOAD_TIMEOUT}); 
+    await page.click("._3M-N-",{timeout:config.PAGE_LOAD_TIMEOUT}); 
     await page.waitFor(500);
   }
 }
@@ -249,10 +249,10 @@ async function enviarImagen(num,uri,msg='') {
     uri = output;
   }
   if (await findUser(num)) {	
-    await page.waitForSelector(selector.btnSendAssets);
-    await page.click(selector.btnSendAssets);
-    await page.waitForSelector(selector.btnSelectImg);    
-    let upload = await page.$(selector.inputSendImg);
+    let clip = await page.waitForSelector(selector.btnSendAssets); //boton adjuntar "clip"
+    await page.click(selector.btnSendAssets);           //boton adjuntar "clip"
+    await page.waitForSelector(selector.btnSelectImg);
+    let upload = await page.$(selector.inputSetImg);
     // eslint-disable-next-line no-undef
     let file = path.relative(process.cwd(),uri);
     await upload.uploadFile(file);
@@ -270,7 +270,6 @@ const selector = {
   userPic:(num='') => `#pane-side img[src*="${num}%40"]`,
   userNum:(num='') => `#pane-side span[title*="${num}"]`,
   chatInput:'#main > footer div.selectable-text[contenteditable]',
-  imgSendInput:'#app > div > div > div._37f_5 > div._3HZor._2rI9W > span > div > span > div > div > div.rK2ei.USE1O > div > span > div > div._3cDQo > div > div._3ogpF > div._3FeAD._2YgjU._1pSqv > div._3u328.copyable-text.selectable-text',
   msgSending:'span[data-icon="status-time"]',
   msgCheck:'span[data-icon="status-dblcheck-ack"]',
   msgDblCheck:'span[data-icon="status-check"]',
@@ -281,9 +280,10 @@ const selector = {
   msgRecibido:'status-dblcheck-ack',
   msgLeido:'status-dblcheck',
   activarApp:'.landing-main',
+  imgSendInput:'#app > div > div > div._37f_5 > div._3HZor._2rI9W > span > div > span > div > div > div.rK2ei.USE1O > div > span > div > div._3cDQo > div > div._3ogpF > div._3FeAD._2YgjU._1pSqv > div._3u328.copyable-text.selectable-text',
   btnSendAssets:'div[title="Adjuntar"]',
-  btnSelectImg:'#main > header > div._2kYeZ > div > div._3j8Pd.GPmgf > span > div > div > ul > li:nth-child(1) > button',
-  inputSendImg:'#main > header > div._2kYeZ > div > div._3j8Pd.GPmgf > span > div > div > ul > li:nth-child(1) > button > input[type=file]'
+  btnSelectImg:'._3z3lc',
+  inputSetImg:`#main input[accept^='image']`
 }
 async function currentPage() {
   return page;
