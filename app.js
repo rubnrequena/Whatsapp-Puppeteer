@@ -6,7 +6,7 @@ var cookieParser = require('cookie-parser');
 var indexRouter = require('./routes/index');
 
 const mongoose = require('mongoose');
-mongoose.connect("mongodb://localhost:27017/wapi",{useNewUrlParser: true,useCreateIndex:true},(err)=> {
+mongoose.connect("mongodb://dario:dario123@ds223685.mlab.com:23685/wapi",{useNewUrlParser: true,useCreateIndex:true},(err)=> {
   if (err) console.log("Error al conectar con Mongo");
   else console.log("Conectado exitosamente con Mongo");
 });
