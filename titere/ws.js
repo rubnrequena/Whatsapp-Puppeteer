@@ -8,8 +8,10 @@ const config = require('../config/index');
 const services = require('../titere/BotHandler');
 const path = require('path');
 const wget = require('node-wget-promise');
+const moment = require('moment');
 
 const chat = require('../model/Chat');
+
 
 const clerror = chalk.red;
 const clgreen = chalk.green;
@@ -32,7 +34,7 @@ async function init() {
     await page.goto('https://web.whatsapp.com/',{waitUntil:"networkidle2"});    
     await initPage();
     await leerMensajes();
-    nextPending();
+    proximoMensaje();
   }  
   setCheck(true);
 }
@@ -82,7 +84,7 @@ async function initMonitorEnviados () {
 async function leerMensajes() {
   queue = await chat.find({enviado:{$exists:false}});
   console.log(`WS: ${queue.length} mensajes por enviar`);
-  nextPending();
+  proximoMensaje();
 }
 async function onMensajeEnviado (num,status) {
   num = num.replace(/[+\s]+/g,"");
@@ -121,13 +123,9 @@ function msgCheck() {
     nodes.forEach(e => {
       let uDiv = e.closest('._2WP9Q');
       let nMsg = e.innerText;
-	  console.log("msg",nMsg);
-      //let salida = uDiv.querySelector('._1VfKB');
-      //if (salida) {return;} //usuario esta 
 
       let msgSpan = uDiv.querySelector('._19RFN._1ovWX');	  
       if (!msgSpan) return; //usuario esta escribiendo
-	  console.log("msgSpan",msgSpan.innerText);
       let msg = msgSpan.innerText;
       let eNumero = uDiv.querySelector('span[title]');
       if (eNumero) {
@@ -146,14 +144,16 @@ function msgCheck() {
       }
     },300);
   }).catch(e=>console.log(clerror(e.name),e));
+  proximoMensaje();
 }
 function messageRcv (num,msg) {
   console.log(clgreen(`${num} dice: ${msg}`));
   let hook = /^#(\w+) ([\w\W]+)/.exec(msg);
-  console.log("hook",hook[1]);
   require(`../handler/${hook[1]}`)(num,hook[2]);
 }
-async function typeMsg(msg,input) {
+async function escribirMsg(msg,input) {
+  msg = procesarMsg(msg);
+
   await page.waitForSelector(input);
   await page.click(input,{timeout:config.PAGE_LOAD_TIMEOUT});
   
@@ -172,26 +172,32 @@ async function typeMsg(msg,input) {
   await page.keyboard.up("ControlLeft");
 
 }
-async function enviar(numero,texto) {
+function procesarMsg (msg) {
+  msg = msg.replace(":ahora",moment().format("DD/MM/YY hh:mm A"));
+  msg = msg.replace(":hoy",moment().format("DD/MM/YY"));
+  msg = msg.replace(":hora",moment().format("hh:mm A"));
+  return msg;
+}
+async function enviar(numero,texto,programado) {
   var msg = new chat({
-    numero,texto
+    numero,texto,programado
   });
   await msg.save();    
   queue.push(msg);
-  nextPending();
+  proximoMensaje();
   return msg;
 }
 async function _enviar (mensaje) {
   listoEnviar=false;
-  if (await findUser(mensaje.numero)) {
-    await typeMsg(mensaje.texto,selector.chatInput);    
+  if (await buscarUsuario(mensaje.numero)) {
+    await escribirMsg(mensaje.texto,selector.chatInput);    
     await page.keyboard.press("Enter");
   } else {    
     await enviarNumero(mensaje.numero,mensaje.texto);    
   }
 
   listoEnviar=true;
-  await nextPending();
+  await proximoMensaje();
 }
 async function enviarNumero(num,msg) {
   console.log(`WS: APIWS ${num} > ${msg}`);
@@ -202,7 +208,7 @@ async function enviarNumero(num,msg) {
     await page.waitFor(500);
     if (await page.$('.landing-main')) {
       console.log("Esperando validacion QR http://127.0.0.1/ws/qr");
-      await getScreen();
+      await imprimirPantalla();
       await page.waitFor(5000);
     }
   }
@@ -218,8 +224,8 @@ async function enviarNumero(num,msg) {
     await page.waitFor(500);
   }
 }
-async function findUser (num) {
-  await typeMsg(num,selector.searchInput);
+async function buscarUsuario (num) {
+  await escribirMsg(num,selector.searchInput);
   await page.waitFor (200);
   let sel = selector.userNum( formatPhone(num));
   let user = await page.$(sel);
@@ -229,17 +235,21 @@ async function findUser (num) {
   }
   return false;
 }
-async function nextPending() {
+async function proximoMensaje() {
   if (listoEnviar) {
-    if (queue.length>0) {      
-      let msg = queue.shift();//await chat.findOne({ enviado : { $exists: false } });
-      await _enviar(msg);
-    } else console.log(clerror(new Date().toLocaleTimeString()));
+    if (queue.length>0) {
+      //let msg = queue[0];//await chat.findOne({ enviado : { $exists: false } });
+      for (const msg of queue) {
+        if (msg.programado) {
+          if (msg.programado<new Date()) return await _enviar(queue.shift());
+        } else return _enviar(queue.shift());
+      }
+    }
   }
 }
-async function getScreen(name="lastQR",_page) {
-  _page = _page || page;
-  await _page.screenshot({path:`public/pantallas/${name}.jpg`});
+async function imprimirPantalla(nombre="lastQR",pagina) {
+  pagina = pagina || page;
+  await pagina.screenshot({path:`public/pantallas/${nombre}.jpg`});
 }
 async function enviarImagen(num,uri,msg='') {
   if (uri.match(/http/)) {
@@ -248,8 +258,8 @@ async function enviarImagen(num,uri,msg='') {
     await wget(uri,{output});
     uri = output;
   }
-  if (await findUser(num)) {	
-    let clip = await page.waitForSelector(selector.btnSendAssets); //boton adjuntar "clip"
+  if (await buscarUsuario(num)) {	
+    await page.waitForSelector(selector.btnSendAssets); //boton adjuntar "clip"
     await page.click(selector.btnSendAssets);           //boton adjuntar "clip"
     await page.waitForSelector(selector.btnSelectImg);
     let upload = await page.$(selector.inputSetImg);
@@ -258,7 +268,7 @@ async function enviarImagen(num,uri,msg='') {
     await upload.uploadFile(file);
     await page.waitForSelector(selector.imgSendInput);
     console.log(`imagen txt: ${msg}`);
-    await typeMsg(msg,selector.imgSendInput);
+    await escribirMsg(msg,selector.imgSendInput);
     await page.keyboard.press("Enter");
   }
 }
@@ -294,6 +304,6 @@ function mensajesEnCola() {
 }
 
 module.exports = {
-  init,findUser,enviar,enviarImagen,currentPage,getScreen,services,
+  init,findUser: buscarUsuario,enviar,enviarImagen,currentPage,getScreen: imprimirPantalla,services,
   mensajesEnCola
 }

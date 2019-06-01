@@ -13,6 +13,7 @@ const chat = new mongoose.Schema({
     type:Date,
     default:new Date
   },
+  programado:Date,
   enviado:Date,
   recibido:Date,
   leido:Date,
