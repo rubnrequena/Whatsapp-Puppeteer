@@ -193,17 +193,17 @@ async function _enviar (mensaje) {
     await escribirMsg(mensaje.texto,selector.chatInput);    
     await page.keyboard.press("Enter");
   } else {    
-    await enviarNumero(mensaje.numero,mensaje.texto);    
+    await enviarNumero(mensaje);
   }
 
   listoEnviar=true;
   await proximoMensaje();
 }
-async function enviarNumero(num,msg) {
-  console.log(`WS: APIWS ${num} > ${msg}`);
+async function enviarNumero(mensaje) {
+  console.log(`WS: APIWS ${mensaje.numero} > ${mensaje.texto}`);
   setCheck(false);
-  await page.goto(`https://web.whatsapp.com/send?phone=${num}&text=${encodeURI(msg)}&source=&data=`,{waitUntil:"networkidle2",timeout:config.PAGE_LOAD_TIMEOUT});
- console.log("WS: Cargando..."); 
+  await page.goto(`https://web.whatsapp.com/send?phone=${mensaje.numero}&text=${encodeURI(mensaje.texto)}&source=&data=`,{waitUntil:"networkidle2",timeout:config.PAGE_LOAD_TIMEOUT});
+  console.log("WS: Cargando..."); 
   while (!await page.$('#app')) {
     await page.waitFor(500);
     if (await page.$('.landing-main')) {
@@ -213,10 +213,16 @@ async function enviarNumero(num,msg) {
     }
   }
   console.log("WS: Ready..."); 
-  await initMonitorEnviados();   
-  await enviarMensaje();  
-  setCheck(true);
+  await initMonitorEnviados();
   
+  if (await page.$('._3RiLE')) {
+    await page.click('._3RiLE div[role="button"]');
+    console.log(chalk.red("Mensaje no enviado"));
+    mensaje.error = 1;
+    await mensaje.save();
+    await page.waitFor(500);
+  } else await enviarMensaje();
+  setCheck(true);  
   async function enviarMensaje () {
     await page.waitForSelector('._3M-N-',{timeout:config.PAGE_LOAD_TIMEOUT}).catch(enviarMensaje);
     await page.waitFor(500);

@@ -17,7 +17,8 @@ const chat = new mongoose.Schema({
   enviado:Date,
   recibido:Date,
   leido:Date,
-  hilo:Number
+  hilo:Number,
+  error:Number
 });
 
 module.exports = mongoose.model("Chat",chat);
