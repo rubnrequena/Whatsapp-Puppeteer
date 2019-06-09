@@ -215,13 +215,18 @@ async function enviarNumero(mensaje) {
   console.log("WS: Ready..."); 
   await initMonitorEnviados();
   
-  if (await page.$('._3RiLE')) {
-    await page.click('._3RiLE div[role="button"]');
-    console.log(chalk.red("Mensaje no enviado"));
-    mensaje.error = 1;
-    mensaje.enviado = new Date();
-    await mensaje.save();
-    await page.waitFor(500);
+  await page.waitForSelector('._2Vo52');
+  if (await page.$('._2Vo52')) {
+    let msg = await  page.$eval('._2Vo52',(e) => e.innerText);
+    console.log("msg",msg);
+    if (msg=='El número de teléfono compartido a través de la dirección URL es inválido') {
+      await page.click('._3RiLE div[role="button"]');
+      console.log(chalk.red("Mensaje no enviado"));
+      mensaje.error = 1;
+      mensaje.enviado = new Date();
+      await mensaje.save();
+      await page.waitFor(500);
+    } else await enviarMensaje();
   } else await enviarMensaje();
   setCheck(true);  
   
