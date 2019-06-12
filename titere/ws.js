@@ -12,10 +12,8 @@ const moment = require('moment');
 
 const chat = require('../model/Chat');
 
-
 const clerror = chalk.red;
 const clgreen = chalk.green;
-const clwarn = chalk.yellow;
 var page;
 var listoEnviar=false;
 var mensajes={};
@@ -88,19 +86,18 @@ async function leerMensajes() {
 }
 async function onMensajeEnviado (num,status) {
   num = num.replace(/[+\s]+/g,"");
-  //delete mensajes[num];
   switch (status) {
     case selector.msgEnviado:
       await chat.updateMany({numero:num,enviado:{$exists:false}},{$currentDate:{enviado:true}});      
-      console.log(clwarn(`Enviado: ${num}`));
+      console.log(clgreen(`Enviado: ${num}`));
       break;
     case selector.msgLeido: 
       await chat.updateMany({numero:num,recibido:{$exists:false}},{$currentDate:{recibido:true}});
-      console.log(clwarn(`Recibido: ${num}`)); 
+      //console.log(clwarn(`Recibido: ${num}`)); 
       break;
     case selector.msgRecibido: 
       await chat.updateMany({numero:num,leido:{$exists:false}},{$currentDate:{leido:true,recibido:true}});
-      console.log(clwarn(`Leido: ${num}`));
+      //console.log(clwarn(`Leido: ${num}`));
       break;
   }
 }
@@ -218,10 +215,9 @@ async function enviarNumero(mensaje) {
   await page.waitForSelector('._2Vo52');
   if (await page.$('._2Vo52')) {
     let msg = await  page.$eval('._2Vo52',(e) => e.innerText);
-    console.log("msg",msg);
     if (msg=='El número de teléfono compartido a través de la dirección URL es inválido') {
       await page.click('._3RiLE div[role="button"]');
-      console.log(chalk.red("Mensaje no enviado"));
+      console.log(chalk.red(`Error: ${msg}`));
       mensaje.error = 1;
       mensaje.enviado = new Date();
       await mensaje.save();
